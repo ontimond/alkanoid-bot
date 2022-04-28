@@ -30,6 +30,7 @@ const social: SocialTypes = {
       /^https:\/\/www.facebook.com\/watch\?v=([^&]*)/,
       // Example: https://www.facebook.com/100076156761151/videos/509943293907442
       /^https:\/\/www.facebook.com\/([^\/]*)\/videos\/([^\/]*)/,
+      /(?:https?:\/\/)?(?:www.|web.|m.)?(facebook|fb).(com|watch)\/(?:video.php\?v=\d+|(\S+)|photo.php\?v=\d+|\?v=\d+)|\S+\/videos\/((\S+)\/(\d+)|(\d+))\/?/,
     ],
     strategy: async (url: string, ctx: Context) => {
       const resp = await Facebook.getVideo(url);
