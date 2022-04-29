@@ -112,7 +112,6 @@ const social: SocialTypes = {
     strategy: async (url, ctx) => {
       const resp = await TikTok.getVideo(url);
       if (!resp.data.hasError) {
-        console.log("Tiktok resp", resp.data);
         const video = await sanitizeUrl(resp.data.body.video);
 
         console.log("Sending video to telegram...");
@@ -161,12 +160,13 @@ bot.start((ctx) => ctx.reply("Welcome!"));
 bot.hears(
   Object.values(social).flatMap(({ urls }) => urls),
   async (ctx) => {
+    let downloadMessage;
     try {
       const strategy = getStrategy(ctx.message.text);
       const url = ctx.message.text;
 
       if (strategy) {
-        const downloadMessage = await ctx.reply(
+        downloadMessage = await ctx.reply(
           `🫠 Downloading ${strategy.name} video...`
         );
         console.log("url", url);
@@ -178,6 +178,9 @@ bot.hears(
       ctx.replyWithHTML(`<b>Error:</b> ${e}`, {
         reply_to_message_id: ctx.message?.message_id,
       });
+      if (downloadMessage) {
+        ctx.deleteMessage(downloadMessage.message_id);
+      }
       console.log(e);
     }
   }
