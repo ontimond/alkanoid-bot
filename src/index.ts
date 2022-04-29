@@ -1,7 +1,8 @@
 require("dotenv").config();
 import { Context, Telegraf } from "telegraf";
-const { Facebook, Instagram } = require("social-downloader-sdk");
+const { Facebook, Instagram, TikTok } = require("social-downloader-sdk");
 const turl = require("turl");
+const instareel = require("insta-reel");
 
 const bot = new Telegraf(process.env.BOT_TOKEN || "", {
   handlerTimeout: 9_000_000,
@@ -51,22 +52,34 @@ const social: SocialTypes = {
         );
       } else {
         console.log("Error: ", resp.data.errorMessage);
+        throw "resp.data.body.error.message";
       }
     },
   },
-  instagram: {
-    name: "Instagram",
+  instagramReel: {
+    name: "Instagram reel",
     urls: [
-      /(?:(?:http|https):\/\/)?(?:www.)?(?:instagram.com|instagr.am)\/reel\/([^\/]*)/im,
-      /(?:(?:http|https):\/\/)?(?:www.)?(?:instagram.com|instagr.am)\/p\/([^\/]*)/im,
-      /(?:(?:http|https):\/\/)?(?:www.)?(?:instagram.com|instagr.am)\/tv\/([^\/]*)/im,
+      /(?:(?:http|https):\/\/)?(?:www.)?(?:instagram.com|instagr.am)\/reel\/([A-Za-z0-9-_]+)/im,
     ],
-    strategy: (url) => {
-      return Instagram.getAny(url);
+    strategy: async (url, ctx) => {
+      const reel = await instareel(url);
+      if (reel) {
+        await ctx.replyWithVideo(
+          {
+            url: reel.video_url,
+          },
+          {
+            reply_to_message_id: ctx.message?.message_id,
+            caption: `${
+              ctx.message?.from.username ?? ctx.message?.from.first_name
+            } shared a video ${url}`,
+          }
+        );
+      }
     },
   },
-  instagramProfile: {
-    name: "Instagram Profile",
+  instagramStories: {
+    name: "Instagram stories",
     urls: [
       /(?:(?:http|https):\/\/)?(?:www.)?(?:instagram.com|instagr.am)\/([A-Za-z0-9-_]+)/im,
     ],
@@ -88,6 +101,34 @@ const social: SocialTypes = {
             reply_to_message_id: ctx.message?.message_id,
           })
         );
+      }
+    },
+  },
+  tiktok: {
+    name: "TikTok",
+    urls: [
+      /https?:\/\/(?:(?:www|m)\.(?:tiktok.com)\/(?:v|video|@.*\/video)\/(?:\d*))/im,
+    ],
+    strategy: async (url, ctx) => {
+      const resp = await TikTok.getVideo(url);
+      if (!resp.data.hasError) {
+        console.log("Tiktok resp", resp.data);
+        const video = await sanitizeUrl(resp.data.body.video);
+
+        console.log("Sending video to telegram...");
+        await ctx.replyWithVideo(
+          {
+            url: video,
+          },
+          {
+            reply_to_message_id: ctx.message?.message_id,
+            caption: `${
+              ctx.message?.from.username ?? ctx.message?.from.first_name
+            } shared a video ${url}`,
+          }
+        );
+      } else {
+        console.log("Error: ", resp.data.errorMessage);
       }
     },
   },
@@ -125,11 +166,18 @@ bot.hears(
       const url = ctx.message.text;
 
       if (strategy) {
+        const downloadMessage = await ctx.reply(
+          `🫠 Downloading ${strategy.name} video...`
+        );
         console.log("url", url);
         console.log("strategy", strategy.name);
         await strategy.strategy(url, ctx);
+        ctx.deleteMessage(downloadMessage.message_id);
       }
     } catch (e) {
+      ctx.replyWithHTML(`<b>Error:</b> ${e}`, {
+        reply_to_message_id: ctx.message?.message_id,
+      });
       console.log(e);
     }
   }

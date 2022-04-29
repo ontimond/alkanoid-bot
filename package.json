@@ -7,7 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": " tsc -p tsconfig.json && node dist/index.js",
     "build": "tsc -p tsconfig.json",
-    "watch": "tsc -p tsconfig.json -w",
+    "watch": "tsc -p tsconfig.json -w & nodemon -q -w dist dist/index.js",
     "lint": "tslint --project . --fix",
     "clean": "rm -rf dist"
   },
@@ -15,6 +15,7 @@
   "license": "ISC",
   "dependencies": {
     "axios": "^0.27.2",
+    "insta-reel": "^2.0.1",
     "social-downloader-sdk": "^1.0.0",
     "telegraf": "^4.7.0",
     "turl": "^1.1.2"
@@ -25,6 +26,7 @@
     "@typescript-eslint/parser": "^5.21.0",
     "dotenv": "^16.0.0",
     "eslint": "^8.14.0",
+    "nodemon": "^2.0.16",
     "ts-node": "^10.7.0",
     "typescript": "^4.6.4"
   }
