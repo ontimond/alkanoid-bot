@@ -100,11 +100,12 @@ const social: SocialTypes = {
           (story: any) => story.image_versions2?.candidates?.[0]
         );
 
-        stories.forEach((image: string) =>
-          ctx.replyWithPhoto(image, {
-            caption: ctx.from?.first_name,
-            reply_to_message_id: ctx.message?.message_id,
-          })
+        await stories.forEach(
+          async (image: string) =>
+            await ctx.replyWithPhoto(image, {
+              caption: ctx.from?.first_name,
+              reply_to_message_id: ctx.message?.message_id,
+            })
         );
       }
     },
