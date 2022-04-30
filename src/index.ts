@@ -1,6 +1,11 @@
 require("dotenv").config();
 import { Context, Telegraf } from "telegraf";
-const { Facebook, Instagram, TikTok } = require("social-downloader-sdk");
+const {
+  Facebook,
+  Instagram,
+  TikTok,
+  YouTube,
+} = require("social-downloader-sdk");
 const turl = require("turl");
 const instareel = require("insta-reel");
 
@@ -52,7 +57,7 @@ const social: SocialTypes = {
         );
       } else {
         console.log("Error: ", resp.data.errorMessage);
-        throw "resp.data.body.error.message";
+        throw resp.data.errorMessage;
       }
     },
   },
@@ -137,9 +142,26 @@ const social: SocialTypes = {
       /^https:\/\/www.youtube.com\/watch\?v=([^&]*)/,
       /^https:\/\/youtu.be\/([^&]*)/,
     ],
-    strategy: async (url) => {
-      const media = await Facebook.getMedia(url);
-      return media.url;
+    strategy: async (url, ctx) => {
+      const resp = await YouTube.getVideo(url);
+      if (!resp.data.hasError) {
+        const video = await sanitizeUrl(resp.data.body.video);
+
+        console.log("Sending video to telegram...");
+        await ctx.replyWithVideo(
+          {
+            url: video,
+          },
+          {
+            reply_to_message_id: ctx.message?.message_id,
+            caption: `${
+              ctx.message?.from.username ?? ctx.message?.from.first_name
+            } shared a video ${url}`,
+          }
+        );
+      } else {
+        console.log("Error: ", resp.data.errorMessage);
+      }
     },
   },
 };
