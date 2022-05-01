@@ -8,6 +8,7 @@ const {
 } = require("social-downloader-sdk");
 const turl = require("turl");
 const instareel = require("insta-reel");
+import axios from "axios";
 
 const bot = new Telegraf(process.env.BOT_TOKEN || "", {
   handlerTimeout: 9_000_000,
@@ -34,11 +35,30 @@ const social: SocialTypes = {
     name: "Facebook",
     urls: [
       /^https:\/\/www.facebook.com\/watch\?v=([^&]*)/,
-      // Example: https://www.facebook.com/100076156761151/videos/509943293907442
       /^https:\/\/www.facebook.com\/([^\/]*)\/videos\/([^\/]*)/,
       /(?:https?:\/\/)?(?:www.|web.|m.)?(facebook|fb).(com|watch)\/(?:video.php\?v=\d+|(\S+)|photo.php\?v=\d+|\?v=\d+)|\S+\/videos\/((\S+)\/(\d+)|(\d+))\/?/,
     ],
     strategy: async (url: string, ctx: Context) => {
+      if (url.includes("fb.watch")) {
+        // Follow redirects to get the video id
+        const res = await axios.get(url, {
+          maxRedirects: 5,
+          validateStatus: (status) => status === 200,
+        });
+        url = res.request.res.responseUrl;
+      }
+
+      // Extract video id from url
+      const match = url.match(
+        /facebook.com\/((\d*\/videos\/)|(reel\/)|(watch\?v=))(?<video_id>\d*)/i
+      );
+      if (match) {
+        const video_id = match.groups?.video_id;
+        // Replace url with mobile version
+        // https://m.facebook.com/video.php?v=VIDEO_ID
+        url = `https://m.facebook.com/video.php?v=${video_id}`;
+      }
+
       const resp = await Facebook.getVideo(url);
       if (!resp.data.hasError) {
         const video = await sanitizeUrl(resp.data.body.video);
