@@ -134,8 +134,19 @@ const social: SocialTypes = {
     name: "TikTok",
     urls: [
       /https?:\/\/(?:(?:www|m)\.(?:tiktok.com)\/(?:v|video|@.*\/video)\/(?:\d*))/im,
+      // Example: https://vm.tiktok.com/ZMLnq2dWs/
+      /https:\/\/vm\.tiktok\.com\/(.*)\//im
     ],
     strategy: async (url, ctx) => {
+      if (url.includes("vm.tiktok")) {
+        // Follow redirects to get the video id
+        const res = await axios.get(url, {
+          maxRedirects: 5,
+          validateStatus: (status) => status === 200,
+        });
+        url = res.request.res.responseUrl;
+      }
+
       const resp = await TikTok.getVideo(url);
       if (!resp.data.hasError) {
         const video = await sanitizeUrl(resp.data.body.video);
@@ -156,35 +167,7 @@ const social: SocialTypes = {
         console.log("Error: ", resp.data.errorMessage);
       }
     },
-  },
-  youtube: {
-    name: "Youtube",
-    urls: [
-      /^https:\/\/www.youtube.com\/watch\?v=([^&]*)/,
-      /^https:\/\/youtu.be\/([^&]*)/,
-    ],
-    strategy: async (url, ctx) => {
-      const resp = await YouTube.getVideo(url);
-      if (!resp.data.hasError) {
-        const video = await sanitizeUrl(resp.data.body.video);
-
-        console.log("Sending video to telegram...");
-        await ctx.replyWithVideo(
-          {
-            url: video,
-          },
-          {
-            reply_to_message_id: ctx.message?.message_id,
-            caption: `${
-              ctx.message?.from.username ?? ctx.message?.from.first_name
-            } shared a video ${url}`,
-          }
-        );
-      } else {
-        console.log("Error: ", resp.data.errorMessage);
-      }
-    },
-  },
+  }
 };
 
 function getStrategy(url: string): SocialType | null {
