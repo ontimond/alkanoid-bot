@@ -2,6 +2,7 @@ if (process.env.NODE_ENV === "development") {
   require("dotenv").config();
 }
 
+import express from "express";
 import axios from "axios";
 import { Telegraf } from "telegraf";
 import { logger } from "./logger";
@@ -67,3 +68,9 @@ bot.launch();
 
 process.once("SIGINT", () => bot.stop("SIGINT"));
 process.once("SIGTERM", () => bot.stop("SIGTERM"));
+
+express()
+  .get("/", (req, res) => {
+    res.json({ status: "ok" });
+  })
+  .listen(process.env.PORT || 5000);
